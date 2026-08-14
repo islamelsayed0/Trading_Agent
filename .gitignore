@@ -1,0 +1,52 @@
+# Anything private lives outside this repo.
+private/
+scratch/
+*.local.md
+
+# Broker exports and statements
+statements/
+confirms/
+*.csv
+*.ofx
+*.qfx
+*.pdf
+
+# Live config pulled from a running system
+settings.json
+.mcp.json
+*.conf
+*.cfg
+*.env
+.env*
+*.pem
+*.key
+*.crt
+*.p12
+authorized_keys
+known_hosts
+
+# Journals contain real positions and sizes. Sanitize, then promote by hand.
+journal/
+
+# Screenshots
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.heic
+
+# Backups and dumps
+*.bak
+*.dump
+*.sql
+*.tar
+*.tar.gz
+*.zip
+
+# Editor and OS noise
+.DS_Store
+.obsidian/
+.vscode/
+.idea/
+*.swp

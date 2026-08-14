@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -e
+./scripts/scan.sh --tree
+./scripts/scan.sh --history
