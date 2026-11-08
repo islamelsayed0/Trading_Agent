@@ -9,6 +9,17 @@ set -uo pipefail
 RED=$'\033[31m'; YEL=$'\033[33m'; GRN=$'\033[32m'; OFF=$'\033[0m'
 FAIL=0
 
+# The patterns need PCRE (grep -P). macOS grep has no -P, and an unsupported flag
+# would make every check silently pass. Use GNU grep and refuse to run without it.
+PGREP=""
+for g in ggrep /opt/homebrew/bin/ggrep /usr/local/bin/ggrep grep; do
+  if echo ab12 | command "$g" -Pq '\b[a-z]+\d+\b' 2>/dev/null; then PGREP="$g"; break; fi
+done
+if [ -z "$PGREP" ]; then
+  echo "${RED}Scan failed.${OFF} No grep with -P support found. Run: brew install grep"
+  exit 1
+fi
+
 # Lines carrying the marker below are skipped. It exists so that this file and
 # PUBLISHING.md can name a pattern in order to document it. It will also hide a real
 # secret, so it belongs nowhere else.
@@ -46,9 +57,9 @@ scan_text () {
   local clean
   clean=$(printf '%s' "$text" | grep -v "$MARKER")
   for p in "${PATTERNS[@]}"; do
-    if printf '%s' "$clean" | grep -nPqi -- "$p" 2>/dev/null; then
+    if printf '%s' "$clean" | "$PGREP" -nPqi -- "$p" 2>/dev/null; then
       echo "${RED}BLOCKED${OFF} $label matches: $p"
-      printf '%s' "$clean" | grep -nPi -- "$p" | head -3 | sed 's/^/    /'
+      printf '%s' "$clean" | "$PGREP" -nPi -- "$p" | head -3 | sed 's/^/    /'
       FAIL=1
     fi
   done
