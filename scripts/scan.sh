@@ -3,7 +3,8 @@
 # Usage:
 #   ./scripts/scan.sh            scan tracked and staged content
 #   ./scripts/scan.sh --tree     scan the whole working tree
-#   ./scripts/scan.sh --history  scan all history and commit messages
+#   ./scripts/scan.sh --history  scan all history, commit messages and commit emails
+#   ./scripts/scan.sh --emails   check emails of commits being pushed (pre-push stdin)
 set -uo pipefail
 
 RED=$'\033[31m'; YEL=$'\033[33m'; GRN=$'\033[32m'; OFF=$'\033[0m'
@@ -84,6 +85,33 @@ scan_files () {
   done
 }
 
+# Commit identity. Every author and committer email must be the GitHub noreply address;
+# a default git identity leaks the machine's hostname into history, and file scanning
+# never sees it.
+ALLOWED_EMAIL='102868927+islamelsayed0@users.noreply.github.com' # scan-allow
+
+check_emails () { # git rev-list arguments
+  local bad
+  bad=$(git log --format='%h %ae%n%h %ce' "$@" 2>/dev/null | awk -v ok="$ALLOWED_EMAIL" '$2 != ok' | sort -u)
+  if [ -n "$bad" ]; then
+    echo "${RED}BLOCKED${OFF} commits with an author or committer email that is not the noreply address:"
+    printf '%s\n' "$bad" | head -20 | sed 's/^/    /'
+    echo "    Fix: git config --global user.email <noreply address>, then rewrite those commits."
+    FAIL=1
+  fi
+}
+
+check_identity () { # the identity the next commit would get
+  local who email
+  for who in GIT_AUTHOR_IDENT GIT_COMMITTER_IDENT; do
+    email=$(git var "$who" 2>/dev/null | sed -E 's/.*<([^>]*)>.*/\1/')
+    if [ "$email" != "$ALLOWED_EMAIL" ]; then
+      echo "${RED}BLOCKED${OFF} $who email is not the noreply address: $email"
+      FAIL=1
+    fi
+  done
+}
+
 MODE="${1:---staged}"
 case "$MODE" in
   --tree)
@@ -99,9 +127,29 @@ case "$MODE" in
       [ "$t" = "blob" ] || continue
       scan_text "history blob $blob" "$(git cat-file -p "$blob" 2>/dev/null | head -2000)"
     done
+    check_emails --all
+    ;;
+  --emails)
+    # Pre-push input lines: <local ref> <local sha> <remote ref> <remote sha>.
+    # Checks only the commits being pushed. With no input, checks every commit.
+    got=0
+    if [ ! -t 0 ]; then
+      while read -r _ lsha _ rsha; do
+        [ -n "${lsha:-}" ] || continue
+        got=1
+        [[ "$lsha" =~ ^0+$ ]] && continue   # branch delete
+        if [[ "$rsha" =~ ^0+$ ]] || ! git cat-file -e "$rsha" 2>/dev/null; then
+          check_emails "$lsha" --not --remotes
+        else
+          check_emails "$rsha..$lsha"
+        fi
+      done
+    fi
+    [ "$got" = 1 ] || check_emails --all
     ;;
   *)
     scan_files "$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null)"
+    check_identity
     ;;
 esac
 

@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
 set -e
-./scripts/scan.sh --tree
-./scripts/scan.sh --history
+refs=$(cat)
+printf '%s\n' "$refs" | ./scripts/scan.sh --emails
+./scripts/scan.sh --tree </dev/null
+./scripts/scan.sh --history </dev/null
