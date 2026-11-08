@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
 refs=$(cat)
+# Prove the scanner still refuses what it should before trusting its "clean".
+./tests/test_scan.sh </dev/null
 printf '%s\n' "$refs" | ./scripts/scan.sh --emails
 ./scripts/scan.sh --tree </dev/null
 ./scripts/scan.sh --history </dev/null

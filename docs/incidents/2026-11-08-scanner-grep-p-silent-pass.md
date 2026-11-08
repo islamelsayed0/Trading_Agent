@@ -68,12 +68,12 @@ commit metadata was left out of scope.
 | New `scan.sh --emails`, run first in `pre-push`, checks the commits being pushed | procedure | done |
 | The default (pre commit) mode refuses a commit whose author or committer identity is not the noreply address | procedure | done |
 | Negative tests: planted token blocked; a wrong email blocked at commit, history scan and push | procedure | done, by hand |
+| `tests/test_scan.sh`: every secret class, file type, history, commit email and the missing grep case must be refused; a refusal only counts if the scanner itself refused. Runs first in `pre-push` | procedure | done |
 
 ## What is still exposed
 
-- The negative tests were run by hand once. Nothing reruns them, so a later edit could make
-  the scanner fail open again unnoticed. A test that plants a secret and expects exit 1
-  belongs in any repo that relies on this script.
+- The scanner self test runs on every push but not on commit, and only where the hooks
+  are enabled.
 - Hooks still have to be enabled in every clone. Forgetting is silent.
 - The history scan reads only the first 2000 lines of each blob.
 - Pattern scanning only finds what it has patterns for. The manual read through in
