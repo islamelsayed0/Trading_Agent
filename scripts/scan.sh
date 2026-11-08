@@ -115,7 +115,9 @@ check_identity () { # the identity the next commit would get
 MODE="${1:---staged}"
 case "$MODE" in
   --tree)
-    scan_files "$(git ls-files 2>/dev/null; find . -type f -not -path './.git/*' | sed 's|^\./||')"
+    # Everything git could commit: tracked files plus untracked files that are not ignored.
+    # Ignored paths (.venv, caches, state/) can never be pushed, so they are not scanned.
+    scan_files "$(git ls-files --cached --others --exclude-standard 2>/dev/null)"
     ;;
   --history)
     scan_files "$(git ls-files)"

@@ -122,5 +122,12 @@ else
   fail "could not disable grep discovery in the scanner copy"
 fi
 
+# 8. --tree covers what git could commit, and only that.
+fresh; printf '%s\n' "$TOKEN" > untracked.md
+expect 1 "tree refuses an untracked, not ignored secret" ./scripts/scan.sh --tree
+fresh; echo "ignored/" > .gitignore; git add .gitignore; git commit -q -m ignore
+mkdir ignored; printf '%s\n' "$TOKEN" > ignored/cache.txt
+expect 0 "tree skips ignored paths" ./scripts/scan.sh --tree
+
 echo "scanner self test: $PASS passed, $FAILS failed"
 [ "$FAILS" -eq 0 ]
